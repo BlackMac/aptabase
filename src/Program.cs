@@ -10,6 +10,7 @@ using Aptabase.Features.GeoIP;
 using Aptabase.Features.Ingestion;
 using Aptabase.Features.Ingestion.Buffer;
 using Aptabase.Features.Notification;
+using Aptabase.Features.Notifications;
 using Aptabase.Features.Privacy;
 using Aptabase.Features.Stats;
 using ClickHouse.Client.ADO;
@@ -158,6 +159,7 @@ public partial class Program
 
         builder.Services.AddGeoIPClient(appEnv);
         builder.Services.AddEmailClient(appEnv);
+        builder.Services.AddNotifications();
         builder.Services.AddLemonSqueezy(appEnv);
 
         if (!string.IsNullOrEmpty(appEnv.ClickHouseConnectionString))

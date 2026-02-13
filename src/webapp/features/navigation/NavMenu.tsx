@@ -7,6 +7,7 @@ import {
   IconCode,
   IconGraph,
   IconLayoutGrid,
+  IconBell,
   IconSettings,
   IconUsers,
 } from "@tabler/icons-react";
@@ -66,6 +67,16 @@ export function NavMenu(props: { onNavigation?: VoidFunction }) {
             }
             href={`/${currentApp?.id}/settings`}
             icon={IconSettings}
+            onNavigation={props.onNavigation}
+          />
+          <NavItem
+            label="Notifications"
+            disabled={!currentApp || !currentApp.hasOwnership}
+            disabledReason={
+              currentApp && !currentApp.hasOwnership ? "Notifications are available only to application owners" : undefined
+            }
+            href={`/${currentApp?.id}/notifications`}
+            icon={IconBell}
             onNavigation={props.onNavigation}
           />
         </NavCategory>

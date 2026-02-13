@@ -1,0 +1,6 @@
+SELECT count() as Events,
+       uniqExact(session_id) as Sessions,
+       uniqExact(user_id) as Users
+FROM events
+PREWHERE app_id = '{{app_id}}'
+WHERE timestamp BETWEEN '{{date_from}}' AND '{{date_to}}'

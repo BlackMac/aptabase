@@ -1,0 +1,7 @@
+SELECT app_id as AppId,
+       event_name as EventName,
+       count() as Count
+FROM events
+PREWHERE app_id IN ('{{app_ids}}')
+WHERE timestamp >= '{{since}}'
+GROUP BY app_id, event_name

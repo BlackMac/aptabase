@@ -1,0 +1,5 @@
+SELECT app_id as AppId,
+       max(timestamp) as LastTimestamp
+FROM events
+PREWHERE app_id IN ('{{app_ids}}')
+GROUP BY app_id

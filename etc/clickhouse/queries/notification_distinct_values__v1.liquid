@@ -1,0 +1,6 @@
+SELECT app_id as AppId,
+       {{column_name}} as Value
+FROM events
+PREWHERE app_id IN ('{{app_ids}}')
+WHERE timestamp >= '{{since}}'
+GROUP BY app_id, {{column_name}}

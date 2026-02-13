@@ -1,0 +1,8 @@
+SELECT app_id as AppId,
+       toDate(timestamp) as Date,
+       count() as Count
+FROM events
+PREWHERE app_id IN ('{{app_ids}}')
+WHERE timestamp >= '{{since}}'
+GROUP BY app_id, toDate(timestamp)
+ORDER BY app_id, Date

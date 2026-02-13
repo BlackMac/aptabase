@@ -66,6 +66,10 @@ const router = createBrowserRouter([
         lazy: () => import("./features/apps/SettingsPage"),
       },
       {
+        path: "/:id/notifications",
+        lazy: () => import("./features/notifications/NotificationsPage"),
+      },
+      {
         path: "/billing",
         lazy: () => import("./features/billing/BillingPage"),
       },
