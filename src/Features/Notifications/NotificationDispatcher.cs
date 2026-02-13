@@ -4,6 +4,7 @@ public class NotificationDispatcher
 {
     private readonly INotificationQueries _queries;
     private readonly NotificationChannelFactory _channelFactory;
+    private readonly EnvSettings _env;
     private readonly ILogger<NotificationDispatcher> _logger;
 
     private const int MaxNotificationsPerHour = 200;
@@ -11,10 +12,12 @@ public class NotificationDispatcher
     public NotificationDispatcher(
         INotificationQueries queries,
         NotificationChannelFactory channelFactory,
+        EnvSettings env,
         ILogger<NotificationDispatcher> logger)
     {
         _queries = queries ?? throw new ArgumentNullException(nameof(queries));
         _channelFactory = channelFactory ?? throw new ArgumentNullException(nameof(channelFactory));
+        _env = env ?? throw new ArgumentNullException(nameof(env));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -44,6 +47,9 @@ public class NotificationDispatcher
             return;
         }
 
+        // Resolve app icon URL
+        var iconUrl = await GetAppIconUrl(rule.AppId);
+
         // Resolve channels and send
         foreach (var channelId in rule.ChannelIds)
         {
@@ -54,7 +60,7 @@ public class NotificationDispatcher
                     continue;
 
                 var channel = _channelFactory.Create(channelRow);
-                await channel.SendAsync(title, message, ct);
+                await channel.SendAsync(title, message, ct, iconUrl);
 
                 await _queries.LogNotification(rule.AppId, rule.Id, channelId, message, dedupKey);
                 _logger.LogInformation("Notification sent for rule {RuleId} to channel {ChannelId}", rule.Id, channelId);
@@ -68,8 +74,18 @@ public class NotificationDispatcher
 
     public async Task SendTestAsync(string appId, NotificationChannelRow channelRow, CancellationToken ct)
     {
+        var iconUrl = await GetAppIconUrl(appId);
         var channel = _channelFactory.Create(channelRow);
-        await channel.SendAsync("Aptabase Test", "This is a test notification from Aptabase. If you see this, your channel is configured correctly!", ct);
+        await channel.SendAsync("Aptabase Test", "This is a test notification from Aptabase. If you see this, your channel is configured correctly!", ct, iconUrl);
         await _queries.LogNotification(appId, null, channelRow.Id, "Test notification", null);
+    }
+
+    private async Task<string?> GetAppIconUrl(string appId)
+    {
+        var iconPath = await _queries.GetAppIconPath(appId);
+        if (string.IsNullOrEmpty(iconPath) || string.IsNullOrEmpty(_env.SelfBaseUrl))
+            return null;
+
+        return $"{_env.SelfBaseUrl.TrimEnd('/')}/uploads/{iconPath}";
     }
 }

@@ -108,6 +108,33 @@ public class NotificationsController : Controller
         return Ok(new { });
     }
 
+    [HttpPost("/api/_apps/{appId}/notification-channels/test-all")]
+    public async Task<IActionResult> TestAllChannels(string appId, CancellationToken ct)
+    {
+        if (await GetOwnedApp(appId) == null) return NotFound();
+
+        var channels = await _queries.GetChannelsForApp(appId);
+        var enabled = channels.Where(c => c.Enabled).ToList();
+        if (enabled.Count == 0)
+            return BadRequest(new { errors = new { channels = new[] { "No enabled channels to test" } } });
+
+        var sent = 0;
+        foreach (var channel in enabled)
+        {
+            try
+            {
+                await _dispatcher.SendTestAsync(appId, channel, ct);
+                sent++;
+            }
+            catch
+            {
+                // continue with remaining channels
+            }
+        }
+
+        return Ok(new { sent, total = enabled.Count });
+    }
+
     // --- Rules ---
 
     [HttpGet("/api/_apps/{appId}/notification-rules")]

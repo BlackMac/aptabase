@@ -44,6 +44,9 @@ export const notificationsApi = {
   testChannel: (appId: string, channelId: string) =>
     api.post<{}>(`/_apps/${appId}/notification-channels/${channelId}/test`),
 
+  testAllChannels: (appId: string) =>
+    api.post<{ sent: number; total: number }>(`/_apps/${appId}/notification-channels/test-all`),
+
   getRules: (appId: string) =>
     api.get<NotificationRule[]>(`/_apps/${appId}/notification-rules`),
 

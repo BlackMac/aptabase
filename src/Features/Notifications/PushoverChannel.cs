@@ -13,7 +13,7 @@ public class PushoverChannel : INotificationChannel
         _http = http ?? throw new ArgumentNullException(nameof(http));
     }
 
-    public async Task SendAsync(string title, string message, CancellationToken ct)
+    public async Task SendAsync(string title, string message, CancellationToken ct, string? iconUrl = null)
     {
         var form = new FormUrlEncodedContent(new[]
         {

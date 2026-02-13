@@ -18,7 +18,7 @@ public class NtfyChannel : INotificationChannel
         _http = http ?? throw new ArgumentNullException(nameof(http));
     }
 
-    public async Task SendAsync(string title, string message, CancellationToken ct)
+    public async Task SendAsync(string title, string message, CancellationToken ct, string? iconUrl = null)
     {
         var url = $"{_serverUrl}/{_topic}";
         var request = new HttpRequestMessage(HttpMethod.Post, url)
@@ -28,6 +28,11 @@ public class NtfyChannel : INotificationChannel
 
         request.Headers.Add("Title", title);
         request.Headers.Add("Tags", "bell");
+
+        if (!string.IsNullOrEmpty(iconUrl))
+        {
+            request.Headers.Add("Icon", iconUrl);
+        }
 
         if (!string.IsNullOrEmpty(_token))
         {

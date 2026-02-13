@@ -16,7 +16,7 @@ public class TelegramChannel : INotificationChannel
         _http = http ?? throw new ArgumentNullException(nameof(http));
     }
 
-    public async Task SendAsync(string title, string message, CancellationToken ct)
+    public async Task SendAsync(string title, string message, CancellationToken ct, string? iconUrl = null)
     {
         var text = $"*{EscapeMarkdown(title)}*\n\n{EscapeMarkdown(message)}";
         var payload = JsonSerializer.Serialize(new
