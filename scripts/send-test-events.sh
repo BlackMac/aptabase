@@ -16,12 +16,12 @@
 
 set -euo pipefail
 
-BASE_URL="${APTABASE_URL:-https://localhost:5251}"
+BASE_URL="${APTABASE_URL:-https://apta.yuzuhub.com}"
 APP_KEY="${1:?Usage: $0 <APP_KEY> [COUNT]}"
 COUNT="${2:-10}"
 
-EVENT_NAMES=("purchase" "signup" "error" "page_view" "button_click" "app_start" "checkout")
-APP_VERSIONS=("1.0.0" "1.1.0" "1.2.0" "2.0.0-beta")
+EVENT_NAMES=("test")
+APP_VERSIONS=("1.0.0")
 SDK_VERSION="test-script/1.0"
 
 echo "Sending $COUNT events to $BASE_URL with app key $APP_KEY"

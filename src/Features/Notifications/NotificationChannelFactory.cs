@@ -19,6 +19,7 @@ public class NotificationChannelFactory
         {
             "telegram" => CreateTelegram(row.ConfigJson, http),
             "pushover" => CreatePushover(row.ConfigJson, http),
+            "ntfy" => CreateNtfy(row.ConfigJson, http),
             _ => throw new ArgumentException($"Unknown channel type: {row.ChannelType}")
         };
     }
@@ -39,5 +40,15 @@ public class NotificationChannelFactory
         var userKey = root.GetProperty("user_key").GetString() ?? "";
         var appToken = root.GetProperty("app_token").GetString() ?? "";
         return new PushoverChannel(userKey, appToken, http);
+    }
+
+    private static NtfyChannel CreateNtfy(string configJson, HttpClient http)
+    {
+        using var doc = JsonDocument.Parse(configJson);
+        var root = doc.RootElement;
+        var serverUrl = root.TryGetProperty("server_url", out var urlProp) ? urlProp.GetString() ?? "https://ntfy.sh" : "https://ntfy.sh";
+        var topic = root.GetProperty("topic").GetString() ?? "";
+        var token = root.TryGetProperty("token", out var tokenProp) ? tokenProp.GetString() : null;
+        return new NtfyChannel(serverUrl, topic, token, http);
     }
 }

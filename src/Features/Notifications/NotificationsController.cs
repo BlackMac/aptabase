@@ -45,8 +45,9 @@ public class NotificationsController : Controller
     {
         if (await GetOwnedApp(appId) == null) return NotFound();
 
-        if (body.ChannelType != "telegram" && body.ChannelType != "pushover")
-            return BadRequest(new { errors = new { channelType = new[] { "Channel type must be 'telegram' or 'pushover'" } } });
+        var validTypes = new[] { "telegram", "pushover", "ntfy" };
+        if (!validTypes.Contains(body.ChannelType))
+            return BadRequest(new { errors = new { channelType = new[] { "Channel type must be 'telegram', 'pushover', or 'ntfy'" } } });
 
         var channel = await _queries.CreateChannel(appId, body.Name, body.ChannelType, body.ConfigJson);
         return Ok(new NotificationChannelResponse

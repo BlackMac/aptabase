@@ -2,7 +2,7 @@ import { Button } from "@components/Button";
 import { ErrorState } from "@components/ErrorState";
 import { LoadingState } from "@components/LoadingState";
 import { Application } from "@features/apps";
-import { IconBrandTelegram, IconBell, IconTrash, IconSend, IconPlus } from "@tabler/icons-react";
+import { IconBrandTelegram, IconBell, IconBellRinging, IconTrash, IconSend, IconPlus } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ export function ChannelsList(props: Props) {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "telegram": return <IconBrandTelegram className="h-5 w-5 text-blue-500" />;
+      case "ntfy": return <IconBellRinging className="h-5 w-5 text-green-500" />;
       case "pushover": return <IconBell className="h-5 w-5 text-orange-500" />;
       default: return <IconBell className="h-5 w-5" />;
     }

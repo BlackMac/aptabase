@@ -28,6 +28,11 @@ export function ChannelFormDialog(props: Props) {
   const [userKey, setUserKey] = useState("");
   const [appToken, setAppToken] = useState("");
 
+  // ntfy fields
+  const [ntfyServerUrl, setNtfyServerUrl] = useState("https://ntfy.sh");
+  const [ntfyTopic, setNtfyTopic] = useState("");
+  const [ntfyToken, setNtfyToken] = useState("");
+
   useEffect(() => {
     if (props.channel) {
       setName(props.channel.name);
@@ -38,11 +43,17 @@ export function ChannelFormDialog(props: Props) {
         setChatId(config.chat_id || "");
         setUserKey(config.user_key || "");
         setAppToken(config.app_token || "");
+        setNtfyServerUrl(config.server_url || "https://ntfy.sh");
+        setNtfyTopic(config.topic || "");
+        setNtfyToken(config.token || "");
       } catch {
         setBotToken("");
         setChatId("");
         setUserKey("");
         setAppToken("");
+        setNtfyServerUrl("https://ntfy.sh");
+        setNtfyTopic("");
+        setNtfyToken("");
       }
     } else {
       setName("");
@@ -51,12 +62,22 @@ export function ChannelFormDialog(props: Props) {
       setChatId("");
       setUserKey("");
       setAppToken("");
+      setNtfyServerUrl("https://ntfy.sh");
+      setNtfyTopic("");
+      setNtfyToken("");
     }
   }, [props.channel, props.open]);
 
   const buildConfigJson = () => {
     if (channelType === "telegram") {
       return JSON.stringify({ bot_token: botToken, chat_id: chatId });
+    }
+    if (channelType === "ntfy") {
+      return JSON.stringify({
+        server_url: ntfyServerUrl || "https://ntfy.sh",
+        topic: ntfyTopic,
+        ...(ntfyToken ? { token: ntfyToken } : {}),
+      });
     }
     return JSON.stringify({ user_key: userKey, app_token: appToken });
   };
@@ -115,6 +136,7 @@ export function ChannelFormDialog(props: Props) {
                 onChange={(e) => setChannelType(e.target.value)}
               >
                 <option value="telegram">Telegram</option>
+                <option value="ntfy">ntfy</option>
                 <option value="pushover">Pushover</option>
               </select>
             </div>
@@ -147,6 +169,44 @@ export function ChannelFormDialog(props: Props) {
                 placeholder={isEditing ? "Leave blank to keep existing" : "-1001234567890"}
                 onChange={(e) => setChatId(e.target.value)}
                 description="The numeric ID of the chat, group, or channel (found via getUpdates above)"
+              />
+            </>
+          )}
+
+          {channelType === "ntfy" && (
+            <>
+              <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">How to set up ntfy</p>
+                <ol className="list-decimal ml-4 space-y-0.5">
+                  <li>Use the public server at <span className="font-mono">ntfy.sh</span> or self-host your own.</li>
+                  <li>Pick a topic name (treat it like a password if using the public server).</li>
+                  <li>Subscribe on your phone via the ntfy app or in your browser.</li>
+                </ol>
+              </div>
+              <TextInput
+                label="Server URL"
+                name="ntfyServerUrl"
+                value={ntfyServerUrl}
+                placeholder="https://ntfy.sh"
+                onChange={(e) => setNtfyServerUrl(e.target.value)}
+                description="Leave as ntfy.sh for the public server, or enter your self-hosted URL"
+              />
+              <TextInput
+                label="Topic"
+                name="ntfyTopic"
+                required
+                value={ntfyTopic}
+                placeholder="aptabase-alerts"
+                onChange={(e) => setNtfyTopic(e.target.value)}
+                description="The topic to publish notifications to"
+              />
+              <TextInput
+                label="Access Token"
+                name="ntfyToken"
+                value={ntfyToken}
+                placeholder={isEditing ? "Leave blank to keep existing" : "Optional — only needed if the topic requires auth"}
+                onChange={(e) => setNtfyToken(e.target.value)}
+                description="Bearer token for authentication (optional)"
               />
             </>
           )}
