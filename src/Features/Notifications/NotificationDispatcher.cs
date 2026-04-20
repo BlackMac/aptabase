@@ -47,10 +47,10 @@ public class NotificationDispatcher
             return;
         }
 
-        // Resolve app icon URL
-        var iconUrl = await GetAppIconUrl(rule.AppId);
+        var appInfo = await _queries.GetAppInfo(rule.AppId);
+        var iconUrl = GetAppIconUrl(appInfo?.IconPath);
+        var titleWithApp = PrefixTitleWithApp(title, appInfo?.Name);
 
-        // Resolve channels and send
         foreach (var channelId in rule.ChannelIds)
         {
             try
@@ -60,7 +60,7 @@ public class NotificationDispatcher
                     continue;
 
                 var channel = _channelFactory.Create(channelRow);
-                await channel.SendAsync(title, message, ct, iconUrl);
+                await channel.SendAsync(titleWithApp, message, ct, iconUrl);
 
                 await _queries.LogNotification(rule.AppId, rule.Id, channelId, message, dedupKey);
                 _logger.LogInformation("Notification sent for rule {RuleId} to channel {ChannelId}", rule.Id, channelId);
@@ -74,15 +74,19 @@ public class NotificationDispatcher
 
     public async Task SendTestAsync(string appId, NotificationChannelRow channelRow, CancellationToken ct)
     {
-        var iconUrl = await GetAppIconUrl(appId);
+        var appInfo = await _queries.GetAppInfo(appId);
+        var iconUrl = GetAppIconUrl(appInfo?.IconPath);
+        var title = PrefixTitleWithApp("Aptabase Test", appInfo?.Name);
         var channel = _channelFactory.Create(channelRow);
-        await channel.SendAsync("Aptabase Test", "This is a test notification from Aptabase. If you see this, your channel is configured correctly!", ct, iconUrl);
+        await channel.SendAsync(title, "This is a test notification from Aptabase. If you see this, your channel is configured correctly!", ct, iconUrl);
         await _queries.LogNotification(appId, null, channelRow.Id, "Test notification", null);
     }
 
-    private async Task<string?> GetAppIconUrl(string appId)
+    private static string PrefixTitleWithApp(string title, string? appName)
+        => string.IsNullOrWhiteSpace(appName) ? title : $"[{appName}] {title}";
+
+    private string? GetAppIconUrl(string? iconPath)
     {
-        var iconPath = await _queries.GetAppIconPath(appId);
         if (string.IsNullOrEmpty(iconPath) || string.IsNullOrEmpty(_env.SelfBaseUrl))
             return null;
 

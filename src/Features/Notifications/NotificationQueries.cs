@@ -26,7 +26,13 @@ public interface INotificationQueries
     Task<IEnumerable<NotificationLogResponse>> GetRecentLogs(string appId, int limit = 50);
     Task<int> GetRecentNotificationCount(string appId, int windowMinutes);
     Task<IEnumerable<string>> GetEventNamesForApp(string appId, CancellationToken ct);
-    Task<string?> GetAppIconPath(string appId);
+    Task<AppInfoRow?> GetAppInfo(string appId);
+}
+
+public class AppInfoRow
+{
+    public string Name { get; set; } = "";
+    public string? IconPath { get; set; }
 }
 
 public class NotificationQueries : INotificationQueries
@@ -283,10 +289,10 @@ public class NotificationQueries : INotificationQueries
         return results.Select(r => r.Value);
     }
 
-    public async Task<string?> GetAppIconPath(string appId)
+    public async Task<AppInfoRow?> GetAppInfo(string appId)
     {
-        return await _db.Connection.QueryFirstOrDefaultAsync<string?>(
-            "SELECT icon_path FROM apps WHERE id = @appId AND deleted_at IS NULL",
+        return await _db.Connection.QueryFirstOrDefaultAsync<AppInfoRow>(
+            "SELECT name, icon_path FROM apps WHERE id = @appId AND deleted_at IS NULL",
             new { appId });
     }
 }
