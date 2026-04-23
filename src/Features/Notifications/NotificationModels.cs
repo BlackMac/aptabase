@@ -139,6 +139,7 @@ public class EventCountResult
 {
     public string AppId { get; set; } = "";
     public string EventName { get; set; } = "";
+    public string CountryCode { get; set; } = "";
     public long Count { get; set; }
 }
 

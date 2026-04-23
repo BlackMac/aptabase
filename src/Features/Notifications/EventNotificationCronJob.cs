@@ -77,14 +77,15 @@ public class EventNotificationCronJob : BackgroundService
             new { app_ids = appIds, since },
             ct);
 
-        var countsByApp = eventCounts.GroupBy(e => e.AppId)
-            .ToDictionary(g => g.Key, g => g.ToDictionary(e => e.EventName, e => e.Count));
+        var rowsByApp = eventCounts.GroupBy(e => e.AppId)
+            .ToDictionary(g => g.Key, g => g.GroupBy(e => e.EventName)
+                .ToDictionary(eg => eg.Key, eg => eg.ToList()));
 
         foreach (var rule in rules)
         {
             try
             {
-                if (!countsByApp.TryGetValue(rule.AppId, out var appCounts))
+                if (!rowsByApp.TryGetValue(rule.AppId, out var perEvent))
                     continue;
 
                 var config = JsonDocument.Parse(rule.ConfigJson).RootElement;
@@ -95,14 +96,19 @@ public class EventNotificationCronJob : BackgroundService
 
                 foreach (var eventName in eventNames)
                 {
-                    if (!appCounts.TryGetValue(eventName, out var count) || count == 0)
+                    if (!perEvent.TryGetValue(eventName, out var rows) || rows.Count == 0)
                         continue;
 
+                    var total = rows.Sum(r => r.Count);
+                    if (total == 0) continue;
+
                     var dedupKey = dedup ? $"event_push:{rule.Id}:{eventName}" : null;
+                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatCountryBreakdown(rows)}";
+
                     await _dispatcher.DispatchAsync(
                         rule,
                         $"Event: {eventName}",
-                        $"{count} occurrence(s) of '{eventName}' in the last 5 minutes.",
+                        message,
                         dedupKey,
                         dedupWindow,
                         ct);
@@ -138,7 +144,8 @@ public class EventNotificationCronJob : BackgroundService
                     new { app_ids = new[] { rule.AppId }, since },
                     ct);
 
-                var count = eventCounts.Where(e => e.EventName == eventName).Sum(e => e.Count);
+                var matching = eventCounts.Where(e => e.EventName == eventName).ToList();
+                var count = matching.Sum(e => e.Count);
                 if (count <= threshold)
                     continue;
 
@@ -146,7 +153,7 @@ public class EventNotificationCronJob : BackgroundService
                 await _dispatcher.DispatchAsync(
                     rule,
                     $"Threshold Alert: {eventName}",
-                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.",
+                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatCountryBreakdown(matching)}",
                     dedupKey,
                     period == "hour" ? 60 : 1440,
                     ct);
@@ -225,5 +232,29 @@ public class EventNotificationCronJob : BackgroundService
                 _logger.LogError(ex, "Failed to process {RuleType} rule {RuleId}", ruleType, rule.Id);
             }
         }
+    }
+
+    private static string FormatCountryBreakdown(IEnumerable<EventCountResult> rows)
+    {
+        var byCountry = rows
+            .GroupBy(r => string.IsNullOrWhiteSpace(r.CountryCode) ? "??" : r.CountryCode.ToUpperInvariant())
+            .Select(g => (Code: g.Key, Count: g.Sum(r => r.Count)))
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        if (byCountry.Count == 0)
+            return "";
+
+        var parts = byCountry.Select(c => $"{CountryFlag(c.Code)} {c.Code} ({c.Count})");
+        return $"\nFrom: {string.Join(", ", parts)}";
+    }
+
+    private static string CountryFlag(string code)
+    {
+        if (string.IsNullOrEmpty(code) || code.Length != 2 || !char.IsLetter(code[0]) || !char.IsLetter(code[1]))
+            return "";
+        var a = char.ToUpperInvariant(code[0]);
+        var b = char.ToUpperInvariant(code[1]);
+        return char.ConvertFromUtf32(0x1F1E6 + (a - 'A')) + char.ConvertFromUtf32(0x1F1E6 + (b - 'A'));
     }
 }
