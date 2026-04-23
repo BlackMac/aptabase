@@ -77,9 +77,17 @@ public class EventNotificationCronJob : BackgroundService
             new { app_ids = appIds, since },
             ct);
 
+        var eventProps = await _queryClient.NamedQueryAsync<EventPropResult>(
+            "notification_event_props__v1",
+            new { app_ids = appIds, since },
+            ct);
+
         var rowsByApp = eventCounts.GroupBy(e => e.AppId)
             .ToDictionary(g => g.Key, g => g.GroupBy(e => e.EventName)
                 .ToDictionary(eg => eg.Key, eg => eg.ToList()));
+
+        var propsByAppEvent = eventProps.GroupBy(p => (p.AppId, p.EventName))
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         foreach (var rule in rules)
         {
@@ -102,8 +110,9 @@ public class EventNotificationCronJob : BackgroundService
                     var total = rows.Sum(r => r.Count);
                     if (total == 0) continue;
 
+                    var props = propsByAppEvent.GetValueOrDefault((rule.AppId, eventName), new List<EventPropResult>());
                     var dedupKey = dedup ? $"event_push:{rule.Id}:{eventName}" : null;
-                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatCountryBreakdown(rows)}";
+                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatCountryBreakdown(rows)}{FormatPropsBreakdown(props)}";
 
                     await _dispatcher.DispatchAsync(
                         rule,
@@ -149,11 +158,17 @@ public class EventNotificationCronJob : BackgroundService
                 if (count <= threshold)
                     continue;
 
+                var eventProps = await _queryClient.NamedQueryAsync<EventPropResult>(
+                    "notification_event_props__v1",
+                    new { app_ids = new[] { rule.AppId }, since },
+                    ct);
+                var matchingProps = eventProps.Where(p => p.EventName == eventName).ToList();
+
                 var dedupKey = $"threshold:{rule.Id}:{(period == "hour" ? DateTime.UtcNow.ToString("yyyy-MM-dd-HH") : DateTime.UtcNow.ToString("yyyy-MM-dd"))}";
                 await _dispatcher.DispatchAsync(
                     rule,
                     $"Threshold Alert: {eventName}",
-                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatCountryBreakdown(matching)}",
+                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatCountryBreakdown(matching)}{FormatPropsBreakdown(matchingProps)}",
                     dedupKey,
                     period == "hour" ? 60 : 1440,
                     ct);
@@ -247,6 +262,30 @@ public class EventNotificationCronJob : BackgroundService
 
         var parts = byCountry.Select(c => $"{CountryFlag(c.Code)} {c.Code} ({c.Count})");
         return $"\nFrom: {string.Join(", ", parts)}";
+    }
+
+    private static string FormatPropsBreakdown(IEnumerable<EventPropResult> props)
+    {
+        const int maxKeys = 5;
+        const int maxValuesPerKey = 3;
+
+        var byKey = props
+            .GroupBy(p => p.Key)
+            .Take(maxKeys)
+            .ToList();
+
+        if (byKey.Count == 0)
+            return "";
+
+        var lines = byKey.Select(g =>
+        {
+            var values = g.OrderByDescending(p => p.Count)
+                .Take(maxValuesPerKey)
+                .Select(p => $"{p.Value} ({p.Count})");
+            return $"{g.Key}: {string.Join(", ", values)}";
+        });
+
+        return "\n" + string.Join("\n", lines);
     }
 
     private static string CountryFlag(string code)

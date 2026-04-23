@@ -143,6 +143,15 @@ public class EventCountResult
     public long Count { get; set; }
 }
 
+public class EventPropResult
+{
+    public string AppId { get; set; } = "";
+    public string EventName { get; set; } = "";
+    public string Key { get; set; } = "";
+    public string Value { get; set; } = "";
+    public long Count { get; set; }
+}
+
 public class DistinctValueResult
 {
     public string AppId { get; set; } = "";

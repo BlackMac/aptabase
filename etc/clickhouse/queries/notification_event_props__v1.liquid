@@ -1,0 +1,16 @@
+SELECT AppId,
+       EventName,
+       prop_arr.1 AS Key,
+       prop_arr.2 AS Value,
+       count() AS Count
+FROM (
+    SELECT app_id AS AppId,
+           event_name AS EventName,
+           JSONExtractKeysAndValues(string_props, 'String') AS prop_arr
+    FROM events
+    PREWHERE app_id IN ('{{app_ids}}')
+    WHERE timestamp >= '{{since}}'
+) LEFT ARRAY JOIN prop_arr
+WHERE Key != ''
+GROUP BY AppId, EventName, Key, Value
+ORDER BY AppId, EventName, Key, Count DESC
