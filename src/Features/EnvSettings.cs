@@ -34,6 +34,11 @@ public class EnvSettings
     // Variable Name: AUTH_SECRET
     public byte[] AuthSecret { get; private set; } = [];
 
+    // A static bearer token that grants read-only access to the analytics
+    // reading API exposed under /api/read/*. When empty, the reading API is disabled.
+    // Variable Name: READ_API_TOKEN
+    public string ReadApiToken { get; private set; } = "";
+
     public string? MailCatcherConnectionString { get; private set; }
 
     // The host of the SMTP server
@@ -102,6 +107,7 @@ public class EnvSettings
             TinybirdBaseUrl = Get("TINYBIRD_BASE_URL"),
             TinybirdToken = Get("TINYBIRD_TOKEN"),
             AuthSecret = Encoding.ASCII.GetBytes(MustGet("AUTH_SECRET")),
+            ReadApiToken = Get("READ_API_TOKEN"),
             LemonSqueezyApiKey = Get("LEMONSQUEEZY_API_KEY"),
             LemonSqueezySigningSecret = Get("LEMONSQUEEZY_SIGNING_SECRET"),
 
