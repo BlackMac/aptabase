@@ -2,8 +2,9 @@ SELECT app_id as AppId,
        event_name as EventName,
        country_code as CountryCode,
        os_name as OsName,
+       app_version as AppVersion,
        count() as Count
 FROM events
 PREWHERE app_id IN ('{{app_ids}}')
 WHERE timestamp >= '{{since}}'
-GROUP BY app_id, event_name, country_code, os_name
+GROUP BY app_id, event_name, country_code, os_name, app_version

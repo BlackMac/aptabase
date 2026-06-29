@@ -112,7 +112,7 @@ public class EventNotificationCronJob : BackgroundService
 
                     var props = propsByAppEvent.GetValueOrDefault((rule.AppId, eventName), new List<EventPropResult>());
                     var dedupKey = dedup ? $"event_push:{rule.Id}:{eventName}" : null;
-                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatPlatformBreakdown(rows)}{FormatCountryBreakdown(rows)}{FormatPropsBreakdown(props)}";
+                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatPlatformBreakdown(rows)}{FormatAppVersionBreakdown(rows)}{FormatCountryBreakdown(rows)}{FormatPropsBreakdown(props)}";
 
                     await _dispatcher.DispatchAsync(
                         rule,
@@ -168,7 +168,7 @@ public class EventNotificationCronJob : BackgroundService
                 await _dispatcher.DispatchAsync(
                     rule,
                     $"Threshold Alert: {eventName}",
-                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatPlatformBreakdown(matching)}{FormatCountryBreakdown(matching)}{FormatPropsBreakdown(matchingProps)}",
+                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatPlatformBreakdown(matching)}{FormatAppVersionBreakdown(matching)}{FormatCountryBreakdown(matching)}{FormatPropsBreakdown(matchingProps)}",
                     dedupKey,
                     period == "hour" ? 60 : 1440,
                     ct);
@@ -262,6 +262,21 @@ public class EventNotificationCronJob : BackgroundService
 
         var parts = byPlatform.Select(p => $"{p.Platform} ({p.Count})");
         return $"\nPlatform: {string.Join(", ", parts)}";
+    }
+
+    private static string FormatAppVersionBreakdown(IEnumerable<EventCountResult> rows)
+    {
+        var byVersion = rows
+            .GroupBy(r => string.IsNullOrWhiteSpace(r.AppVersion) ? "Unknown" : r.AppVersion)
+            .Select(g => (Version: g.Key, Count: g.Sum(r => r.Count)))
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        if (byVersion.Count == 0)
+            return "";
+
+        var parts = byVersion.Select(v => $"{v.Version} ({v.Count})");
+        return $"\nApp version: {string.Join(", ", parts)}";
     }
 
     private static string FormatCountryBreakdown(IEnumerable<EventCountResult> rows)

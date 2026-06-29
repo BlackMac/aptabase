@@ -141,6 +141,7 @@ public class EventCountResult
     public string EventName { get; set; } = "";
     public string CountryCode { get; set; } = "";
     public string OsName { get; set; } = "";
+    public string AppVersion { get; set; } = "";
     public long Count { get; set; }
 }
 
