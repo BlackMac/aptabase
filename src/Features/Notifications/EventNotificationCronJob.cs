@@ -112,7 +112,7 @@ public class EventNotificationCronJob : BackgroundService
 
                     var props = propsByAppEvent.GetValueOrDefault((rule.AppId, eventName), new List<EventPropResult>());
                     var dedupKey = dedup ? $"event_push:{rule.Id}:{eventName}" : null;
-                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatCountryBreakdown(rows)}{FormatPropsBreakdown(props)}";
+                    var message = $"{total} occurrence(s) of '{eventName}' in the last 5 minutes.{FormatPlatformBreakdown(rows)}{FormatCountryBreakdown(rows)}{FormatPropsBreakdown(props)}";
 
                     await _dispatcher.DispatchAsync(
                         rule,
@@ -168,7 +168,7 @@ public class EventNotificationCronJob : BackgroundService
                 await _dispatcher.DispatchAsync(
                     rule,
                     $"Threshold Alert: {eventName}",
-                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatCountryBreakdown(matching)}{FormatPropsBreakdown(matchingProps)}",
+                    $"Event '{eventName}' has reached {count} occurrences (threshold: {threshold}) in the current {period}.{FormatPlatformBreakdown(matching)}{FormatCountryBreakdown(matching)}{FormatPropsBreakdown(matchingProps)}",
                     dedupKey,
                     period == "hour" ? 60 : 1440,
                     ct);
@@ -247,6 +247,21 @@ public class EventNotificationCronJob : BackgroundService
                 _logger.LogError(ex, "Failed to process {RuleType} rule {RuleId}", ruleType, rule.Id);
             }
         }
+    }
+
+    private static string FormatPlatformBreakdown(IEnumerable<EventCountResult> rows)
+    {
+        var byPlatform = rows
+            .GroupBy(r => string.IsNullOrWhiteSpace(r.OsName) ? "Unknown" : r.OsName)
+            .Select(g => (Platform: g.Key, Count: g.Sum(r => r.Count)))
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
+        if (byPlatform.Count == 0)
+            return "";
+
+        var parts = byPlatform.Select(p => $"{p.Platform} ({p.Count})");
+        return $"\nPlatform: {string.Join(", ", parts)}";
     }
 
     private static string FormatCountryBreakdown(IEnumerable<EventCountResult> rows)
